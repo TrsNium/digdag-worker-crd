@@ -19,6 +19,8 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -28,25 +30,52 @@ import (
 
 // HorizontalDigdagWorkerAutoscalerReconciler reconciles a HorizontalDigdagWorkerAutoscaler object
 type HorizontalDigdagWorkerAutoscalerReconciler struct {
-	client.Client
+	client client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=horizontalpodautoscalers.autoscaling.digdag-worker-crd,resources=horizontaldigdagworkerautoscalers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=horizontalpodautoscalers.autoscaling.digdag-worker-crd,resources=horizontaldigdagworkerautoscalers/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=apps;extensions,resources=deployments,verbs=get;list;watch;create;update;patch
 
 func (r *HorizontalDigdagWorkerAutoscalerReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("horizontaldigdagworkerautoscaler", req.NamespacedName)
+	// featch list of HorizontalDigdagWorkerAutoscaler
+	horizontalDigdagWorkerAutoscalers := &horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscalerList{}
+	err := r.List(context.Background(), &client.ListOptions{}, horizontalDigdagWorkerAutoscalers)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
-	// your logic here
+	for _, horizontalDigdagWorkerAutoscalerItem := range horizontalDigdagWorkerAutoscalers.Items {
+		// Obtain the target HorizontalDigdagWorkerAutoscaler from the MetaData of HorizontalDigdagWorkerAutoscaler
+		instance := &horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscalerSpec{}
+		err = req.Get(context.Background(), types.NamespacedName{
+			Name:      horizontalDigdagWorkerAutoscalerItem.ObjectMeta.Name,
+			Namespace: horizontalDigdagWorkerAutoscalerItem.ObjectMeta.Namespace,
+		}, instance)
 
+		if err != nil {
+			if !errors.IsNotFound(err) {
+				return reconcile.Result{}, err
+			}
+		}
+
+		//TODO Obtain digdag task queue info from HorizontalDigdagWorkerAutoscaler's configure
+
+		//TODO Obtain the number of pods (replica) of Deployment linked to HorizontalDigdagWorkerAutoscaler
+
+		//TODO Update the number of deployment pods according to the task queue
+
+	}
 	return ctrl.Result{}, nil
 }
 
+// SetupWithManager registers this reconciler with the controller manager and
+// starts watching Deployment.
 func (r *HorizontalDigdagWorkerAutoscalerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscaler{}).
+		Owns(&appsv1.Deployment{}).
 		Complete(r)
 }
