@@ -1,0 +1,7 @@
+domain: digdag-worker-crd
+repo: digdag-worker-crd
+resources:
+- group: horizontalpodautoscalers.autoscaling
+  kind: HorizontalDigdagWorkerAutoscaler
+  version: v1
+version: "2"

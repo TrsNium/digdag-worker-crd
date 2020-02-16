@@ -1,0 +1,26 @@
+# permissions to do edit horizontaldigdagworkerautoscalers.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: horizontaldigdagworkerautoscaler-editor-role
+rules:
+- apiGroups:
+  - horizontalpodautoscalers.autoscaling.digdag-worker-crd
+  resources:
+  - horizontaldigdagworkerautoscalers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - horizontalpodautoscalers.autoscaling.digdag-worker-crd
+  resources:
+  - horizontaldigdagworkerautoscalers/status
+  verbs:
+  - get
+  - patch
+  - update

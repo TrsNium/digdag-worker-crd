@@ -1,0 +1,7 @@
+apiVersion: horizontalpodautoscalers.autoscaling.digdag-worker-crd/v1
+kind: HorizontalDigdagWorkerAutoscaler
+metadata:
+  name: horizontaldigdagworkerautoscaler-sample
+spec:
+  # Add fields here
+  foo: bar
