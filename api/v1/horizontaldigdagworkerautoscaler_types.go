@@ -16,7 +16,6 @@ limitations under the License.
 package v1
 
 import (
-	"github.com/kubernetes/dashboard/src/app/backend/resource/horizontalpodautoscaler"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,23 +24,23 @@ import (
 type HorizontalDigdagWorkerAutoscalerSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	ScaleTargetRef             horizontalpodautoscaler.ScaleTargetRef `json:"scaleTargetRef"`
-	DigdagWorkerMaxTaskThreads int32                                  `json:"digdagMaxTaskThreads"`
-	PostgresqlHost             string                                 `json:"postgresqlHost"`
-	PostgresqlDatabase         string                                 `json:"postgresqlDatabase"`
-	PostgresqlUser             string                                 `json:"postgresqlUser"`
-	PostgresqlPassword         string                                 `json:"postgresqlPassword"`
+	ScaleTargetDeployment      string `json:"scaleTargetDeployment"`
+	DigdagWorkerMaxTaskThreads int32  `json:"digdagMaxTaskThreads"`
+	PostgresqlHost             string `json:"postgresqlHost"`
+	PostgresqlDatabase         string `json:"postgresqlDatabase"`
+	PostgresqlUser             string `json:"postgresqlUser"`
+	PostgresqlPassword         string `json:"postgresqlPassword"`
 }
 
 // HorizontalDigdagWorkerAutoscalerStatus defines the observed state of HorizontalDigdagWorkerAutoscaler
 type HorizontalDigdagWorkerAutoscalerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	ScaleTargetRef              horizontalpodautoscaler.ScaleTargetRef `json:"scaleTargetRef"`
-	DigdagTotalWorkerMaxThreads int32                                  `json:"digdagTotalWorkerMaxThreads"`
-	DigdagQueuedTasks           int32                                  `json:"digdagTotalQueuedTasks"`
-	DigdagPlanedTasks           int32                                  `json:"digdagPlanedTasks"`
-	DigdagRunningTasks          int32                                  `json:"digdagRunningTasks"`
+	ScaleTargetDeployment       string `json:"scaleTargetDeployment"`
+	DigdagTotalWorkerMaxThreads int32  `json:"digdagTotalWorkerMaxThreads"`
+	DigdagQueuedTasks           int32  `json:"digdagTotalQueuedTasks"`
+	DigdagPlanedTasks           int32  `json:"digdagPlanedTasks"`
+	DigdagRunningTasks          int32  `json:"digdagRunningTasks"`
 }
 
 // +kubebuilder:object:root=true

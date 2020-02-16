@@ -17,6 +17,8 @@ package controllers
 
 import (
 	"context"
+	"database/sql"
+	_ "github.com/lib/pq"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
@@ -40,34 +42,24 @@ type HorizontalDigdagWorkerAutoscalerReconciler struct {
 // +kubebuilder:rbac:groups=apps;extensions,resources=deployments,verbs=get;list;watch;create;update;patch
 
 func (r *HorizontalDigdagWorkerAutoscalerReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	ctx := context.Background()
+	log := r.Log.WithValues("HorizontalDigdagWorkerAutoscaler", req.NamespacedName)
+
 	// featch list of HorizontalDigdagWorkerAutoscaler
-	horizontalDigdagWorkerAutoscalers := &horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscalerList{}
-	err := r.List(context.Background(), &client.ListOptions{}, horizontalDigdagWorkerAutoscalers)
-	if err != nil {
-		return ctrl.Result{}, err
+	horizontalDigdagWorkerAutoscaler := &horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscaler{}
+	if err := r.Client.Get(ctx, req.NamespacedName, &horizontalDigdagWorkerAutoscalers); err != nil {
+		log.Error(err, "failed to get HorizontalDigdagWorkerAutoscaler resource")
+		// Ignore NotFound errors as they will be retried automatically if the
+		// resource is created in future.
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	for _, horizontalDigdagWorkerAutoscalerItem := range horizontalDigdagWorkerAutoscalers.Items {
-		// Obtain the target HorizontalDigdagWorkerAutoscaler from the MetaData of HorizontalDigdagWorkerAutoscaler
-		instance := &horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscalerSpec{}
-		err = req.Get(context.Background(), types.NamespacedName{
-			Name:      horizontalDigdagWorkerAutoscalerItem.ObjectMeta.Name,
-			Namespace: horizontalDigdagWorkerAutoscalerItem.ObjectMeta.Namespace,
-		}, instance)
+	//TODO Obtain digdag task queue info from HorizontalDigdagWorkerAutoscaler's configure
 
-		if err != nil {
-			if !errors.IsNotFound(err) {
-				return reconcile.Result{}, err
-			}
-		}
+	//TODO Obtain the number of pods (replica) of Deployment linked to HorizontalDigdagWorkerAutoscaler
 
-		//TODO Obtain digdag task queue info from HorizontalDigdagWorkerAutoscaler's configure
+	//TODO Update the number of deployment pods according to the task queue
 
-		//TODO Obtain the number of pods (replica) of Deployment linked to HorizontalDigdagWorkerAutoscaler
-
-		//TODO Update the number of deployment pods according to the task queue
-
-	}
 	return ctrl.Result{}, nil
 }
 
