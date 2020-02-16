@@ -27,28 +27,21 @@ type HorizontalDigdagWorkerAutoscalerSpec struct {
 	ScaleTargetDeployment      string `json:"scaleTargetDeployment"`
 	DigdagWorkerMaxTaskThreads int32  `json:"digdagMaxTaskThreads"`
 	PostgresqlHost             string `json:"postgresqlHost"`
+	PostgresqlPort             string `json:"postgresqlPort"`
 	PostgresqlDatabase         string `json:"postgresqlDatabase"`
 	PostgresqlUser             string `json:"postgresqlUser"`
 	PostgresqlPassword         string `json:"postgresqlPassword"`
 }
 
 // HorizontalDigdagWorkerAutoscalerStatus defines the observed state of HorizontalDigdagWorkerAutoscaler
-type HorizontalDigdagWorkerAutoscalerStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	ScaleTargetDeployment       string `json:"scaleTargetDeployment"`
-	DigdagTotalWorkerMaxThreads int32  `json:"digdagTotalWorkerMaxThreads"`
-	DigdagQueuedTasks           int32  `json:"digdagTotalQueuedTasks"`
-	DigdagPlanedTasks           int32  `json:"digdagPlanedTasks"`
-	DigdagRunningTasks          int32  `json:"digdagRunningTasks"`
-}
+type HorizontalDigdagWorkerAutoscalerStatus struct{}
 
 // +kubebuilder:object:root=true
 
 // HorizontalDigdagWorkerAutoscaler is the Schema for the horizontaldigdagworkerautoscalers API
 type HorizontalDigdagWorkerAutoscaler struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	TypeMeta   metav1.TypeMeta   `json:"inline"`
+	ObjectMeta metav1.ObjectMeta `json:"metadata"`
 
 	Spec   HorizontalDigdagWorkerAutoscalerSpec   `json:"spec,omitempty"`
 	Status HorizontalDigdagWorkerAutoscalerStatus `json:"status,omitempty"`

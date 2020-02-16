@@ -17,9 +17,6 @@ package controllers
 
 import (
 	"context"
-	"database/sql"
-	_ "github.com/lib/pq"
-	"math"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
@@ -34,9 +31,10 @@ import (
 
 // HorizontalDigdagWorkerAutoscalerReconciler reconciles a HorizontalDigdagWorkerAutoscaler object
 type HorizontalDigdagWorkerAutoscalerReconciler struct {
-	client client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	client                   client.Client
+	Log                      logr.Logger
+	Scheme                   *runtime.Scheme
+	DigdagWorkerScaleManager *DigdagWorkerScaleManager
 }
 
 // +kubebuilder:rbac:groups=horizontalpodautoscalers.autoscaling.digdag-worker-crd,resources=horizontaldigdagworkerautoscalers,verbs=get;list;watch;create;update;patch;delete
@@ -48,94 +46,36 @@ func (r *HorizontalDigdagWorkerAutoscalerReconciler) Reconcile(req ctrl.Request)
 	log := r.Log.WithValues("HorizontalDigdagWorkerAutoscaler", req.NamespacedName)
 
 	// featch list of HorizontalDigdagWorkerAutoscaler
-	horizontalDigdagWorkerAutoscaler := &horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscaler{}
-	if err := r.Client.Get(ctx, req.NamespacedName, &horizontalDigdagWorkerAutoscalers); err != nil {
+	horizontalDigdagWorkerAutoscalers := &horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscalerList{}
+	if err := r.List(ctx, req.NamespacedName, &horizontalDigdagWorkerAutoscalers); err != nil {
 		log.Error(err, "failed to get HorizontalDigdagWorkerAutoscaler resource")
 		// Ignore NotFound errors as they will be retried automatically if the
 		// resource is created in future.
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	log.Info("checking if an existing Deployment exists for this resource")
-
-	// Get Deployment associated with HorizontalDigdagWorkerAutoscaler
-	deployment := appsv1.Deployment{}
-	err := r.Client.Get(ctx, client.ObjectKey{Namespace: horizontalDigdagWorkerAutoscaler.Namespace, Name: horizontalDigdagWorkerAutoscaler.Spec.ScaleTargetDeployment}, &deployment)
-	if errors.IsNotFound(err) {
-		log.Info("Deployment associated with HorizontalDigdagWorkerAutoscaler was not found")
-		return ctrl.Result{}, nil
-	}
-	if err != nil {
-		log.Error(err, "failed to get Deployment for MyKind resource")
-		return ctrl.Result{}, err
-	}
-
-	// Obtain digdag task queue info from HorizontalDigdagWorkerAutoscaler's configure
-	queuedTaskNum, err := getQueuedTaskNum(horizontalDigdagWorkerAutoscaler.Spec)
-	if err != nil {
-		log.Error(err, "failed to get queuedTaskNum")
-		return ctrl.Result{}, err
-	}
-
-	// If there are no queued tasks, set Replicas to 1.
-	// If there are queued tasks, get the number of tasks that have not been executed and update the Replicas.
-	if queuedTotalTaskNum == 0 {
-		// Set replicas to 1 because there are no tasks to execute
-		log.Info("Digdag is idling now")
-
-		expectedReplicas := int32(1)
-		deployment.Spec.Replicas = &expectedReplicas
-		if err := r.Client.Update(ctx, &deployment); err != nil {
-			log.Error(err, "failed to Deployment update replica count")
-			return ctrl.Result{}, err
-		}
-
-		r.Recorder.Eventf(&horizontalDigdagWorkerAutoscaler, core.EventTypeNormal, "Scaled", "Scaled deployment %q to %d replicas", deployment.Name, expectedReplicas)
-		return ctrl.Result{}, nil
-	} else {
-		runningTaskNum, err := getRunningTaskNum()
-		if err != nil {
-			log.Error(err, "failed to get planingTaskNum")
-			return ctrl.Result{}, err
-		}
-
-		// Obtain replica of Deployment linked to HorizontalDigdagWorkerAutoscaler
-		currentReplicas := *deployment.Spec.Replicas
-
-		// Update the number of deployment pods according to the task queue
-		digdagWorkerMaxTaskThreads := horizontalDigdagWorkerAutoscaler.Spec.DigdagWorkerMaxTaskThreads
-		digdagTotalTaskThreads := currentReplicas * digdagWorkerMaxTaskThreads
-
-		// NOTE
-		// Tasks that are not running on any node will be in the running state,
-		// So subtracting digdagTotalTaskThreads from all running tasks will give you the number of surplus tasks
-		surplusTaskNum := runningTaskNum - digdagTotalTaskThreads
-		if surplusTaskNum > 0 {
-			additionalReplicas := int32(math.math.Ceil(surplusTaskNum / digdagWorkerMaxTaskThreads))
-			newReplicas := currentReplicas + additionalReplicas
-
-			deployment.Spec.Replicas = &newReplicas
-			if err := r.Client.Update(ctx, &deployment); err != nil {
-				log.Error(err, "failed to Deployment update replica count")
-				return ctrl.Result{}, err
+	for _, horizontalDigdagWorkerAutoscaler := range horizontalDigdagWorkerAutoscalers.Items {
+		spec := horizontalDigdagWorkerAutoscaler.Spec
+		if !r.DigdagWorkerScaleManager.IsManaged(spec) {
+			err := r.DigdagWorkerScaleManager.Manage(spec)
+			if err != nil {
+				log.Error(err, "failed to manage new digdagWorkerScalers")
 			}
+			continue
+		}
 
-			r.Recorder.Eventf(&horizontalDigdagWorkerAutoscaler, core.EventTypeNormal, "Scaled", "Scaled deployment %q to %d replicas", deployment.Name, newReplicas)
-			return ctrl.Result{}, nil
+		if r.DigdagWorkerScaleManager.IsUpdated(spec) {
+			err := r.DigdagWorkerScaleManager.Update(spec)
+			if err != nil {
+				log.Error(err, "failed to update DigdagWorkerScaleManager")
+				continue
+			}
 		}
 	}
-	// No need to change the number of replicas
+
+	// finaly gc not used DigdagWorkerScaler
+	r.DigdagWorkerScaleManager.GCNotUsed(horizontalDigdagWorkerAutoscalers)
 	return ctrl.Result{}, nil
-}
-
-// select count(*) from tasks;
-func getQueuedTaskNum(spec horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscalerSpec) (error, int32) {
-
-}
-
-// select count(*) from tasks where task_type = 0 and state = 2;
-func getRunningTaskNum(spec horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscalerSpec) (error, int32) {
-
 }
 
 // SetupWithManager registers this reconciler with the controller manager and

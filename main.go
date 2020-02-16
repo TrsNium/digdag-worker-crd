@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
@@ -66,10 +67,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	client := mgr.GetClient()
+	log := ctrl.Log.WithName("controllers").WithName("HorizontalDigdagWorkerAutoscaler")
 	if err = (&controllers.HorizontalDigdagWorkerAutoscalerReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("HorizontalDigdagWorkerAutoscaler"),
-		Scheme: mgr.GetScheme(),
+		Client:                   client,
+		Log:                      log,
+		DigdagWorkerScaleManager: controllers.NewDigdagWorkerScaleManager(client, log),
+		Scheme:                   mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "HorizontalDigdagWorkerAutoscaler")
 		os.Exit(1)
