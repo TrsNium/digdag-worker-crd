@@ -77,7 +77,8 @@ func (r *HorizontalDigdagWorkerAutoscalerReconciler) Reconcile(req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	// TODO: Set replicas to 1 if workflow is not running
+	// If there are no queued tasks, set Replicas to 1.
+	// If there are queued tasks, get the number of tasks that have not been executed and update the Replicas.
 	if queuedTotalTaskNum == 0 {
 		// Set replicas to 1 because there are no tasks to execute
 		log.Info("Digdag is idling now")
