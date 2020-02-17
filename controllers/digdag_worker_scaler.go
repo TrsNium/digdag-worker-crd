@@ -20,7 +20,6 @@ import (
 type DigdagWorkerScaler struct {
 	client                client.Client
 	logger                logr.Logger
-	recorder              record.EventRecorder
 	namespace             string
 	postgresqlHost        string
 	postgresqlPort        int32
@@ -65,12 +64,12 @@ func (r *DigdagWorkerScaler) Update(horizontalDigdagWorkerAutoscaler hpav1.Horiz
 	r.postgresqlUser = spec.PostgresqlUser
 	r.postgresqlPassword = spec.PostgresqlPassword
 	r.scaleTargetDeployment = spec.ScaleTargetDeployment
-	r.scaleIntervalSec = 30
+	r.scaleIntervalSec = 15
 	r.maxTaskThreads = spec.DigdagWorkerMaxTaskThreads
 	r.db = db
 
 	cron := cron.New()
-	cron.AddFunc("*/30 * * * * *", r.scaleDigdagWorker)
+	cron.AddFunc("*/15 * * * * *", r.scaleDigdagWorker)
 	cron.Start()
 	r.cron = cron
 	return nil
@@ -191,13 +190,13 @@ func NewDigdagWorkerScaler(client client.Client, logr logr.Logger, horizontalDig
 		postgresqlUser:        spec.PostgresqlUser,
 		postgresqlPassword:    spec.PostgresqlPassword,
 		scaleTargetDeployment: spec.ScaleTargetDeployment,
-		scaleIntervalSec:      30,
+		scaleIntervalSec:      15,
 		maxTaskThreads:        spec.DigdagWorkerMaxTaskThreads,
 		db:                    db,
 	}
 
 	cron := cron.New()
-	cron.AddFunc("*/30 * * * * *", scaler.scaleDigdagWorker)
+	cron.AddFunc("*/15 * * * * *", scaler.scaleDigdagWorker)
 	scaler.cron = cron
 	scaler.cron.Start()
 
