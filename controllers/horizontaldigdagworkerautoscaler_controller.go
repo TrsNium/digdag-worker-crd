@@ -52,7 +52,6 @@ func (r *HorizontalDigdagWorkerAutoscalerReconciler) Reconcile(req ctrl.Request)
 		// resource is created in future.
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	log.Info(fmt.Sprintf("%d list num", len(horizontalDigdagWorkerAutoscalers.Items)))
 
 	for _, horizontalDigdagWorkerAutoscaler := range horizontalDigdagWorkerAutoscalers.Items {
 		if !r.DigdagWorkerScaleManager.IsManaged(horizontalDigdagWorkerAutoscaler) {
