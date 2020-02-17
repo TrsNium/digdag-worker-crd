@@ -8,6 +8,7 @@ require (
 	github.com/lib/pq v1.3.0
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
+	github.com/robfig/cron v1.2.0
 	github.com/robfig/cron/v3 v3.0.1
 	k8s.io/api v0.0.0-20190918155943-95b840bb6a1f
 	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655

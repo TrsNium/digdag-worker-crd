@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"github.com/go-logr/logr"
 	_ "github.com/lib/pq"
-	"github.com/robfig/cron/v3"
-	"log"
+	"github.com/robfig/cron"
 	"math"
-	"os"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -21,7 +19,7 @@ import (
 
 type DigdagWorkerScaler struct {
 	client                client.Client
-	log                   logr.Logger
+	logger                logr.Logger
 	recorder              record.EventRecorder
 	namespace             string
 	postgresqlHost        string
@@ -71,11 +69,8 @@ func (r *DigdagWorkerScaler) Update(horizontalDigdagWorkerAutoscaler hpav1.Horiz
 	r.maxTaskThreads = spec.DigdagWorkerMaxTaskThreads
 	r.db = db
 
-	cron := cron.New(
-		cron.WithLogger(
-			cron.VerbosePrintfLogger(log.New(os.Stdout, "cron: ", log.LstdFlags))))
-
-	cron.AddFunc(fmt.Sprintf("*/%d * * * * *", r.scaleIntervalSec), r.scaleDigdagWorker)
+	cron := cron.New()
+	cron.AddFunc("*/30 * * * * *", r.scaleDigdagWorker)
 	cron.Start()
 	r.cron = cron
 	return nil
@@ -103,18 +98,18 @@ func (r *DigdagWorkerScaler) scaleDigdagWorker() {
 	deployment := appsv1.Deployment{}
 	err := r.client.Get(ctx, client.ObjectKey{Namespace: r.namespace, Name: r.scaleTargetDeployment}, &deployment)
 	if errors.IsNotFound(err) {
-		log.Printf("Deployment associated with HorizontalDigdagWorkerAutoscaler was not found")
+		r.logger.Info("Deployment associated with HorizontalDigdagWorkerAutoscaler was not found")
 		return
 	}
 	if err != nil {
-		log.Printf("failed to get Deployment for MyKind resource")
+		r.logger.Error(err, "failed to get Deployment for MyKind resource")
 		return
 	}
 
 	// Obtain digdag task queue info from HorizontalDigdagWorkerAutoscaler's configure
 	queuedTaskNum, err := r.getQueuedTaskNum()
 	if err != nil {
-		log.Printf("failed to get queuedTaskNum")
+		r.logger.Error(err, "failed to get queuedTaskNum")
 		return
 	}
 
@@ -122,12 +117,12 @@ func (r *DigdagWorkerScaler) scaleDigdagWorker() {
 	// If there are queued tasks, get the number of tasks that have not been executed and update the Replicas.
 	if queuedTaskNum == 0 {
 		// Set replicas to 1 because there are no tasks to execute
-		log.Printf("Digdag is idling now")
+		r.logger.Info("Digdag is idling now")
 
 		expectedReplicas := int32(1)
 		deployment.Spec.Replicas = &expectedReplicas
 		if err := r.client.Update(ctx, &deployment); err != nil {
-			log.Printf("failed to Deployment update replica count")
+			r.logger.Error(err, "failed to Deployment update replica count")
 			return
 		}
 
@@ -135,7 +130,7 @@ func (r *DigdagWorkerScaler) scaleDigdagWorker() {
 	} else {
 		runningTaskNum, err := r.getRunningTaskNum()
 		if err != nil {
-			log.Printf("failed to get planingTaskNum")
+			r.logger.Error(err, "failed to get planingTaskNum")
 			return
 		}
 
@@ -155,8 +150,9 @@ func (r *DigdagWorkerScaler) scaleDigdagWorker() {
 			newReplicas := currentReplicas + additionalReplicas
 
 			deployment.Spec.Replicas = &newReplicas
+			r.logger.Info(fmt.Sprintf("Scale to %d", newReplicas))
 			if err := r.client.Update(ctx, &deployment); err != nil {
-				log.Printf("failed to Deployment update replica count")
+				r.logger.Error(err, "failed to Deployment update replica count")
 				return
 			}
 
@@ -166,13 +162,13 @@ func (r *DigdagWorkerScaler) scaleDigdagWorker() {
 }
 
 func (r *DigdagWorkerScaler) GC() {
-	r.log.Info("GC")
+	r.logger.Info("GC")
 	r.db.Close()
 	r.cron.Stop()
 }
 
 func createDB(host string, port int32, database string, user string, password string) (*sql.DB, error) {
-	connStr := fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=verify-full", host, port, database, user, password)
+	connStr := fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=disable", host, port, database, user, password)
 	return sql.Open("postgres", connStr)
 }
 
@@ -187,7 +183,7 @@ func NewDigdagWorkerScaler(client client.Client, logr logr.Logger, horizontalDig
 
 	scaler := DigdagWorkerScaler{
 		client:                client,
-		log:                   logr,
+		logger:                logr,
 		namespace:             objectMeta.Namespace,
 		postgresqlHost:        spec.PostgresqlHost,
 		postgresqlPort:        spec.PostgresqlPort,
@@ -200,11 +196,10 @@ func NewDigdagWorkerScaler(client client.Client, logr logr.Logger, horizontalDig
 		db:                    db,
 	}
 
-	cron := cron.New(
-		cron.WithLogger(
-			cron.VerbosePrintfLogger(log.New(os.Stdout, "cron: ", log.LstdFlags))))
-	cron.AddFunc(fmt.Sprintf("*/%d * * * * *", scaler.scaleIntervalSec), scaler.scaleDigdagWorker)
-	cron.Start()
+	cron := cron.New()
+	cron.AddFunc("*/30 * * * * *", scaler.scaleDigdagWorker)
 	scaler.cron = cron
+	scaler.cron.Start()
+
 	return scaler, nil
 }
