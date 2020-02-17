@@ -117,7 +117,7 @@ func (r *DigdagWorkerScaler) scaleDigdagWorker() {
 	// If there are queued tasks, get the number of tasks that have not been executed and update the Replicas.
 	if queuedTaskNum == 0 {
 		// Set replicas to 1 because there are no tasks to execute
-		r.logger.Info("Digdag is idling now")
+		r.logger.Info("Digdag is idling")
 
 		expectedReplicas := int32(1)
 		deployment.Spec.Replicas = &expectedReplicas
