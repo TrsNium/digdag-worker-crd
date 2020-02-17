@@ -40,8 +40,8 @@ type HorizontalDigdagWorkerAutoscalerStatus struct{}
 
 // HorizontalDigdagWorkerAutoscaler is the Schema for the horizontaldigdagworkerautoscalers API
 type HorizontalDigdagWorkerAutoscaler struct {
-	TypeMeta   metav1.TypeMeta   `json:"inline"`
-	ObjectMeta metav1.ObjectMeta `json:"metadata"`
+	metav1.TypeMeta   `json:"inline"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	Spec   HorizontalDigdagWorkerAutoscalerSpec   `json:"spec,omitempty"`
 	Status HorizontalDigdagWorkerAutoscalerStatus `json:"status,omitempty"`

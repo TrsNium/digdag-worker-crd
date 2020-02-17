@@ -20,8 +20,6 @@ import (
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
-	core "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,14 +38,13 @@ type HorizontalDigdagWorkerAutoscalerReconciler struct {
 // +kubebuilder:rbac:groups=horizontalpodautoscalers.autoscaling.digdag-worker-crd,resources=horizontaldigdagworkerautoscalers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=horizontalpodautoscalers.autoscaling.digdag-worker-crd,resources=horizontaldigdagworkerautoscalers/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=apps;extensions,resources=deployments,verbs=get;list;watch;create;update;patch
-
 func (r *HorizontalDigdagWorkerAutoscalerReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("HorizontalDigdagWorkerAutoscaler", req.NamespacedName)
 
 	// featch list of HorizontalDigdagWorkerAutoscaler
 	horizontalDigdagWorkerAutoscalers := &horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscalerList{}
-	if err := r.List(ctx, req.NamespacedName, &horizontalDigdagWorkerAutoscalers); err != nil {
+	if err := r.List(ctx, &client.ListOptions{}, horizontalDigdagWorkerAutoscalers); err != nil {
 		log.Error(err, "failed to get HorizontalDigdagWorkerAutoscaler resource")
 		// Ignore NotFound errors as they will be retried automatically if the
 		// resource is created in future.

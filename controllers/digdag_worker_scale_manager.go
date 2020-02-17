@@ -3,8 +3,7 @@ package controllers
 import (
 	"fmt"
 	"github.com/go-logr/logr"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	horizontalpodautoscalersautoscalingv1 "digdag-worker-crd/api/v1"
 )
@@ -37,6 +36,7 @@ func (r *DigdagWorkerScaleManager) Manage(horizontalDigdagWorkerAutoscaler horiz
 		return err
 	}
 	r.digdagWorkerScalers[key] = digdagWorkerScaler
+	return nil
 }
 
 func (r *DigdagWorkerScaleManager) Update(horizontalDigdagWorkerAutoscaler horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscaler) error {
@@ -52,23 +52,23 @@ func (r *DigdagWorkerScaleManager) gc(digdagWorkerScalersKey string) {
 	digdagWorkerScaler.GC()
 }
 
-func (r *DigdagWorkerScaleManager) GCNotUsed(horizontalDigdagWorkerAutoscalers horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscalerList) error {
+func (r *DigdagWorkerScaleManager) GCNotUsed(horizontalDigdagWorkerAutoscalers horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscalerList) {
 	keys := []string{}
-	for _, horizontalDigdagWorkerAutoscaler := range horizontalDigdagWorkerAutoscalers {
+	for _, horizontalDigdagWorkerAutoscaler := range horizontalDigdagWorkerAutoscalers.Items {
 		objectMeta := horizontalDigdagWorkerAutoscaler.ObjectMeta
 		key := fmt.Sprintf("%s-%s", objectMeta.Namespace, objectMeta.Name)
 		keys = append(keys, key)
 	}
 
-	digdagWorkerScalersKeys := keys(r.digdagWorkerScalers)
+	digdagWorkerScalersKeys := r.keys(r.digdagWorkerScalers)
 	for _, digdagWorkerScalersKey := range digdagWorkerScalersKeys {
-		if !contains(keys, digdagWorkerScalersKey) {
+		if !r.contains(keys, digdagWorkerScalersKey) {
 			r.gc(digdagWorkerScalersKey)
 		}
 	}
 }
 
-func keys(m map[string]DigdagWorkerScaler) []string {
+func (r *DigdagWorkerScaleManager) keys(m map[string]DigdagWorkerScaler) []string {
 	ks := []string{}
 	for k, _ := range m {
 		ks = append(ks, k)
@@ -76,7 +76,7 @@ func keys(m map[string]DigdagWorkerScaler) []string {
 	return ks
 }
 
-func contains(s []string, e string) bool {
+func (r *DigdagWorkerScaleManager) contains(s []string, e string) bool {
 	for _, v := range s {
 		if e == v {
 			return true
@@ -88,7 +88,7 @@ func contains(s []string, e string) bool {
 func NewDigdagWorkerScaleManager(client client.Client, log logr.Logger) *DigdagWorkerScaleManager {
 	dwsm := &DigdagWorkerScaleManager{
 		client:              client,
-		log:                 logr.Logger,
+		log:                 log,
 		digdagWorkerScalers: make(map[string]DigdagWorkerScaler),
 	}
 	return dwsm
