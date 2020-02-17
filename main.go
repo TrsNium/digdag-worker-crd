@@ -71,7 +71,7 @@ func main() {
 	if err = (&controllers.HorizontalDigdagWorkerAutoscalerReconciler{
 		Client:                   client,
 		Log:                      log,
-		DigdagWorkerScaleManager: controllers.NewDigdagWorkerScaleManager(client, log),
+		DigdagWorkerScaleManager: controllers.NewDigdagWorkerScaleManager(client, log.WithValues("Main", "DigdagAutoscaler")),
 		Scheme:                   mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "HorizontalDigdagWorkerAutoscaler")
