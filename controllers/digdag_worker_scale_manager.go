@@ -52,7 +52,7 @@ func (r *DigdagWorkerScaleManager) gc(digdagWorkerScalersKey string) {
 	digdagWorkerScaler.GC()
 }
 
-func (r *DigdagWorkerScaleManager) GCNotUsed(horizontalDigdagWorkerAutoscalers horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscalerList) {
+func (r *DigdagWorkerScaleManager) GCNotUsed(horizontalDigdagWorkerAutoscalers *horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscalerList) {
 	keys := []string{}
 	for _, horizontalDigdagWorkerAutoscaler := range horizontalDigdagWorkerAutoscalers.Items {
 		objectMeta := horizontalDigdagWorkerAutoscaler.ObjectMeta

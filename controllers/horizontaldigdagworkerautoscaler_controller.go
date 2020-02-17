@@ -37,14 +37,15 @@ type HorizontalDigdagWorkerAutoscalerReconciler struct {
 
 // +kubebuilder:rbac:groups=horizontalpodautoscalers.autoscaling.digdag-worker-crd,resources=horizontaldigdagworkerautoscalers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=horizontalpodautoscalers.autoscaling.digdag-worker-crd,resources=horizontaldigdagworkerautoscalers/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=apps;extensions,resources=deployments,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;delete
+
 func (r *HorizontalDigdagWorkerAutoscalerReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("HorizontalDigdagWorkerAutoscaler", req.NamespacedName)
 
 	// featch list of HorizontalDigdagWorkerAutoscaler
 	horizontalDigdagWorkerAutoscalers := &horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscalerList{}
-	if err := r.List(ctx, &client.ListOptions{}, horizontalDigdagWorkerAutoscalers); err != nil {
+	if err := r.client.List(ctx, &client.ListOptions{}, horizontalDigdagWorkerAutoscalers); err != nil {
 		log.Error(err, "failed to get HorizontalDigdagWorkerAutoscaler resource")
 		// Ignore NotFound errors as they will be retried automatically if the
 		// resource is created in future.
@@ -52,17 +53,16 @@ func (r *HorizontalDigdagWorkerAutoscalerReconciler) Reconcile(req ctrl.Request)
 	}
 
 	for _, horizontalDigdagWorkerAutoscaler := range horizontalDigdagWorkerAutoscalers.Items {
-		spec := horizontalDigdagWorkerAutoscaler.Spec
-		if !r.DigdagWorkerScaleManager.IsManaged(spec) {
-			err := r.DigdagWorkerScaleManager.Manage(spec)
+		if !r.DigdagWorkerScaleManager.IsManaged(horizontalDigdagWorkerAutoscaler) {
+			err := r.DigdagWorkerScaleManager.Manage(horizontalDigdagWorkerAutoscaler)
 			if err != nil {
 				log.Error(err, "failed to manage new digdagWorkerScalers")
 			}
 			continue
 		}
 
-		if r.DigdagWorkerScaleManager.IsUpdated(spec) {
-			err := r.DigdagWorkerScaleManager.Update(spec)
+		if r.DigdagWorkerScaleManager.IsUpdated(horizontalDigdagWorkerAutoscaler) {
+			err := r.DigdagWorkerScaleManager.Update(horizontalDigdagWorkerAutoscaler)
 			if err != nil {
 				log.Error(err, "failed to update DigdagWorkerScaleManager")
 				continue

@@ -24,7 +24,8 @@ import (
 type HorizontalDigdagWorkerAutoscalerSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	ScaleTargetDeployment      string `json:"scaleTargetDeployment"`
+	ScaleTargetDeployment string `json:"scaleTargetDeployment"`
+	// +kubebuilder:validation:Minimum=1
 	DigdagWorkerMaxTaskThreads int32  `json:"digdagMaxTaskThreads"`
 	PostgresqlHost             string `json:"postgresqlHost"`
 	PostgresqlPort             string `json:"postgresqlPort"`
@@ -40,8 +41,8 @@ type HorizontalDigdagWorkerAutoscalerStatus struct{}
 
 // HorizontalDigdagWorkerAutoscaler is the Schema for the horizontaldigdagworkerautoscalers API
 type HorizontalDigdagWorkerAutoscaler struct {
-	metav1.TypeMeta   `json:"inline"`
-	metav1.ObjectMeta `json:"metadata"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   HorizontalDigdagWorkerAutoscalerSpec   `json:"spec,omitempty"`
 	Status HorizontalDigdagWorkerAutoscalerStatus `json:"status,omitempty"`
@@ -51,7 +52,7 @@ type HorizontalDigdagWorkerAutoscaler struct {
 
 // HorizontalDigdagWorkerAutoscalerList contains a list of HorizontalDigdagWorkerAutoscaler
 type HorizontalDigdagWorkerAutoscalerList struct {
-	metav1.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:"typemeta,inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []HorizontalDigdagWorkerAutoscaler `json:"items"`
 }
