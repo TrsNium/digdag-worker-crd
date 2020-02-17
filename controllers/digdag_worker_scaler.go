@@ -70,7 +70,7 @@ func (r *DigdagWorkerScaler) Update(horizontalDigdagWorkerAutoscaler horizontalp
 	r.db = db
 
 	cron := cron.New()
-	cron.AddFunc(fmt.Sprintf("*/%i * * * * *", r.scaleIntervalSec), r.scaleDigdagWorker)
+	cron.AddFunc(fmt.Sprintf("*/%d * * * * *", r.scaleIntervalSec), r.scaleDigdagWorker)
 	cron.Start()
 	r.cron = cron
 	return nil
@@ -146,7 +146,7 @@ func (r *DigdagWorkerScaler) scaleDigdagWorker() {
 		// So subtracting digdagTotalTaskThreads from all running tasks will give you the number of surplus tasks
 		surplusTaskNum := runningTaskNum - digdagTotalTaskThreads
 		if surplusTaskNum > 0 {
-			additionalReplicas := int32(math.Ceil(surplusTaskNum / digdagWorkerMaxTaskThreads))
+			additionalReplicas := int32(math.Ceil(float64(surplusTaskNum) / float64(digdagWorkerMaxTaskThreads)))
 			newReplicas := currentReplicas + additionalReplicas
 
 			deployment.Spec.Replicas = &newReplicas
@@ -194,7 +194,7 @@ func NewDigdagWorkerScaler(client client.Client, log logr.Logger, horizontalDigd
 	}
 
 	cron := cron.New()
-	cron.AddFunc(fmt.Sprintf("*/%i * * * * *", scaler.scaleIntervalSec), scaler.scaleDigdagWorker)
+	cron.AddFunc(fmt.Sprintf("*/%d * * * * *", scaler.scaleIntervalSec), scaler.scaleDigdagWorker)
 	cron.Start()
 	scaler.cron = cron
 	return scaler, nil

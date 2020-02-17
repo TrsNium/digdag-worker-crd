@@ -29,7 +29,7 @@ import (
 
 // HorizontalDigdagWorkerAutoscalerReconciler reconciles a HorizontalDigdagWorkerAutoscaler object
 type HorizontalDigdagWorkerAutoscalerReconciler struct {
-	client                   client.Client
+	Client                   client.Client
 	Log                      logr.Logger
 	Scheme                   *runtime.Scheme
 	DigdagWorkerScaleManager *DigdagWorkerScaleManager
@@ -45,7 +45,7 @@ func (r *HorizontalDigdagWorkerAutoscalerReconciler) Reconcile(req ctrl.Request)
 
 	// featch list of HorizontalDigdagWorkerAutoscaler
 	horizontalDigdagWorkerAutoscalers := &horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscalerList{}
-	if err := r.client.List(ctx, &client.ListOptions{}, horizontalDigdagWorkerAutoscalers); err != nil {
+	if err := r.Client.List(ctx, horizontalDigdagWorkerAutoscalers.DeepCopyObject(), &client.ListOptions{}); err != nil {
 		log.Error(err, "failed to get HorizontalDigdagWorkerAutoscaler resource")
 		// Ignore NotFound errors as they will be retried automatically if the
 		// resource is created in future.
