@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	horizontalpodautoscalersautoscalingv1 "digdag-worker-crd/api/v1"
+	hpav1 "digdag-worker-crd/api/v1"
 )
 
 type DigdagWorkerScaler struct {
@@ -23,7 +23,7 @@ type DigdagWorkerScaler struct {
 	recorder              record.EventRecorder
 	namespace             string
 	postgresqlHost        string
-	postgresqlPort        string
+	postgresqlPort        int32
 	postgresqlDatabase    string
 	postgresqlUser        string
 	postgresqlPassword    string
@@ -34,7 +34,7 @@ type DigdagWorkerScaler struct {
 	db                    *sql.DB
 }
 
-func (r *DigdagWorkerScaler) Equal(horizontalDigdagWorkerAutoscaler horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscaler) bool {
+func (r *DigdagWorkerScaler) Equal(horizontalDigdagWorkerAutoscaler hpav1.HorizontalDigdagWorkerAutoscaler) bool {
 	spec := horizontalDigdagWorkerAutoscaler.Spec
 	objectMeta := horizontalDigdagWorkerAutoscaler.ObjectMeta
 	return r.namespace != objectMeta.Namespace ||
@@ -48,7 +48,7 @@ func (r *DigdagWorkerScaler) Equal(horizontalDigdagWorkerAutoscaler horizontalpo
 		r.maxTaskThreads != spec.DigdagWorkerMaxTaskThreads
 }
 
-func (r *DigdagWorkerScaler) Update(horizontalDigdagWorkerAutoscaler horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscaler) error {
+func (r *DigdagWorkerScaler) Update(horizontalDigdagWorkerAutoscaler hpav1.HorizontalDigdagWorkerAutoscaler) error {
 	r.GC()
 
 	spec := horizontalDigdagWorkerAutoscaler.Spec
@@ -165,12 +165,13 @@ func (r *DigdagWorkerScaler) GC() {
 	r.cron.Stop()
 }
 
-func createDB(host string, port string, database string, user string, password string) (*sql.DB, error) {
-	connStr := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=verify-full", host, port, database, user, password)
+func createDB(host string, port int32, database string, user string, password string) (*sql.DB, error) {
+	connStr := fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=verify-full", host, port, database, user, password)
 	return sql.Open("postgres", connStr)
 }
 
-func NewDigdagWorkerScaler(client client.Client, log logr.Logger, horizontalDigdagWorkerAutoscaler horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscaler) (DigdagWorkerScaler, error) {
+func NewDigdagWorkerScaler(client client.Client, log logr.Logger, horizontalDigdagWorkerAutoscaler hpav1.HorizontalDigdagWorkerAutoscaler) (DigdagWorkerScaler, error) {
+	log.Info("Create new DigdagWorkerScaler")
 	spec := horizontalDigdagWorkerAutoscaler.Spec
 	objectMeta := horizontalDigdagWorkerAutoscaler.ObjectMeta
 	db, err := createDB(spec.PostgresqlHost, spec.PostgresqlPort, spec.PostgresqlDatabase, spec.PostgresqlUser, spec.PostgresqlPassword)

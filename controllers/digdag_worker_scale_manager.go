@@ -5,7 +5,7 @@ import (
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	horizontalpodautoscalersautoscalingv1 "digdag-worker-crd/api/v1"
+	hpav1 "digdag-worker-crd/api/v1"
 )
 
 type DigdagWorkerScaleManager struct {
@@ -14,36 +14,38 @@ type DigdagWorkerScaleManager struct {
 	digdagWorkerScalers map[string]DigdagWorkerScaler
 }
 
-func (r *DigdagWorkerScaleManager) IsManaged(horizontalDigdagWorkerAutoscaler horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscaler) bool {
-	objectMeta := horizontalDigdagWorkerAutoscaler.ObjectMeta
-	key := fmt.Sprintf("%s-%s", objectMeta.Namespace, objectMeta.Name)
+func (r *DigdagWorkerScaleManager) IsManaged(horizontalDigdagWorkerAutoscaler hpav1.HorizontalDigdagWorkerAutoscaler) bool {
+	spec := horizontalDigdagWorkerAutoscaler.Spec
+	key := fmt.Sprintf("%s-%s", spec.ScaleTargetDeploymentNamespace, spec.ScaleTargetDeployment)
 	_, isManaged := r.digdagWorkerScalers[key]
 	return isManaged
 }
 
-func (r *DigdagWorkerScaleManager) IsUpdated(horizontalDigdagWorkerAutoscaler horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscaler) bool {
-	objectMeta := horizontalDigdagWorkerAutoscaler.ObjectMeta
-	key := fmt.Sprintf("%s-%s", objectMeta.Namespace, objectMeta.Name)
+func (r *DigdagWorkerScaleManager) IsUpdated(horizontalDigdagWorkerAutoscaler hpav1.HorizontalDigdagWorkerAutoscaler) bool {
+	spec := horizontalDigdagWorkerAutoscaler.Spec
+	key := fmt.Sprintf("%s-%s", spec.ScaleTargetDeploymentNamespace, spec.ScaleTargetDeployment)
 	digdagWorkerScaler, _ := r.digdagWorkerScalers[key]
 	return digdagWorkerScaler.Equal(horizontalDigdagWorkerAutoscaler)
 }
 
-func (r *DigdagWorkerScaleManager) Manage(horizontalDigdagWorkerAutoscaler horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscaler) error {
-	objectMeta := horizontalDigdagWorkerAutoscaler.ObjectMeta
-	key := fmt.Sprintf("%s-%s", objectMeta.Namespace, objectMeta.Name)
+func (r *DigdagWorkerScaleManager) Manage(horizontalDigdagWorkerAutoscaler hpav1.HorizontalDigdagWorkerAutoscaler) error {
+	spec := horizontalDigdagWorkerAutoscaler.Spec
+	key := fmt.Sprintf("%s-%s", spec.ScaleTargetDeploymentNamespace, spec.ScaleTargetDeployment)
 	digdagWorkerScaler, err := NewDigdagWorkerScaler(r.client, r.log, horizontalDigdagWorkerAutoscaler)
 	if err != nil {
 		return err
 	}
 	r.digdagWorkerScalers[key] = digdagWorkerScaler
+	r.log.Info(fmt.Sprintf("Start to manage %s", key))
 	return nil
 }
 
-func (r *DigdagWorkerScaleManager) Update(horizontalDigdagWorkerAutoscaler horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscaler) error {
-	objectMeta := horizontalDigdagWorkerAutoscaler.ObjectMeta
-	key := fmt.Sprintf("%s-%s", objectMeta.Namespace, objectMeta.Name)
+func (r *DigdagWorkerScaleManager) Update(horizontalDigdagWorkerAutoscaler hpav1.HorizontalDigdagWorkerAutoscaler) error {
+	spec := horizontalDigdagWorkerAutoscaler.Spec
+	key := fmt.Sprintf("%s-%s", spec.ScaleTargetDeploymentNamespace, spec.ScaleTargetDeployment)
 	digdagWorkerScaler, _ := r.digdagWorkerScalers[key]
 	err := digdagWorkerScaler.Update(horizontalDigdagWorkerAutoscaler)
+	r.log.Info(fmt.Sprintf("%s is updated", key))
 	return err
 }
 
@@ -52,11 +54,11 @@ func (r *DigdagWorkerScaleManager) gc(digdagWorkerScalersKey string) {
 	digdagWorkerScaler.GC()
 }
 
-func (r *DigdagWorkerScaleManager) GCNotUsed(horizontalDigdagWorkerAutoscalers *horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscalerList) {
+func (r *DigdagWorkerScaleManager) GCNotUsed(horizontalDigdagWorkerAutoscalers *hpav1.HorizontalDigdagWorkerAutoscalerList) {
 	keys := []string{}
 	for _, horizontalDigdagWorkerAutoscaler := range horizontalDigdagWorkerAutoscalers.Items {
-		objectMeta := horizontalDigdagWorkerAutoscaler.ObjectMeta
-		key := fmt.Sprintf("%s-%s", objectMeta.Namespace, objectMeta.Name)
+		spec := horizontalDigdagWorkerAutoscaler.Spec
+		key := fmt.Sprintf("%s-%s", spec.ScaleTargetDeploymentNamespace, spec.ScaleTargetDeployment)
 		keys = append(keys, key)
 	}
 

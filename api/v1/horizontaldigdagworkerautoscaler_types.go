@@ -24,11 +24,12 @@ import (
 type HorizontalDigdagWorkerAutoscalerSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	ScaleTargetDeployment string `json:"scaleTargetDeployment"`
+	ScaleTargetDeployment          string `json:"scaleTargetDeployment"`
+	ScaleTargetDeploymentNamespace string `json:"scaleTargetDeploymentNamespace"`
 	// +kubebuilder:validation:Minimum=1
 	DigdagWorkerMaxTaskThreads int32  `json:"digdagMaxTaskThreads"`
 	PostgresqlHost             string `json:"postgresqlHost"`
-	PostgresqlPort             string `json:"postgresqlPort"`
+	PostgresqlPort             int32  `json:"postgresqlPort"`
 	PostgresqlDatabase         string `json:"postgresqlDatabase"`
 	PostgresqlUser             string `json:"postgresqlUser"`
 	PostgresqlPassword         string `json:"postgresqlPassword"`

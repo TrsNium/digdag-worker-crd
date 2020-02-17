@@ -17,6 +17,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
@@ -24,7 +25,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	horizontalpodautoscalersautoscalingv1 "digdag-worker-crd/api/v1"
+	hpav1 "digdag-worker-crd/api/v1"
 )
 
 // HorizontalDigdagWorkerAutoscalerReconciler reconciles a HorizontalDigdagWorkerAutoscaler object
@@ -44,16 +45,18 @@ func (r *HorizontalDigdagWorkerAutoscalerReconciler) Reconcile(req ctrl.Request)
 	log := r.Log.WithValues("HorizontalDigdagWorkerAutoscaler", req.NamespacedName)
 
 	// featch list of HorizontalDigdagWorkerAutoscaler
-	horizontalDigdagWorkerAutoscalers := &horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscalerList{}
-	if err := r.Client.List(ctx, horizontalDigdagWorkerAutoscalers.DeepCopyObject(), &client.ListOptions{}); err != nil {
+	horizontalDigdagWorkerAutoscalers := &hpav1.HorizontalDigdagWorkerAutoscalerList{}
+	if err := r.Client.List(ctx, horizontalDigdagWorkerAutoscalers, &client.ListOptions{}); err != nil {
 		log.Error(err, "failed to get HorizontalDigdagWorkerAutoscaler resource")
 		// Ignore NotFound errors as they will be retried automatically if the
 		// resource is created in future.
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	log.Info(fmt.Sprintf("%d list num", len(horizontalDigdagWorkerAutoscalers.Items)))
 
 	for _, horizontalDigdagWorkerAutoscaler := range horizontalDigdagWorkerAutoscalers.Items {
 		if !r.DigdagWorkerScaleManager.IsManaged(horizontalDigdagWorkerAutoscaler) {
+			r.Log.Info("Try to regist DigdagWorkerScaleManager")
 			err := r.DigdagWorkerScaleManager.Manage(horizontalDigdagWorkerAutoscaler)
 			if err != nil {
 				log.Error(err, "failed to manage new digdagWorkerScalers")
@@ -61,6 +64,7 @@ func (r *HorizontalDigdagWorkerAutoscalerReconciler) Reconcile(req ctrl.Request)
 			continue
 		}
 
+		r.Log.Info("Check to resource is updated.")
 		if r.DigdagWorkerScaleManager.IsUpdated(horizontalDigdagWorkerAutoscaler) {
 			err := r.DigdagWorkerScaleManager.Update(horizontalDigdagWorkerAutoscaler)
 			if err != nil {
@@ -79,7 +83,7 @@ func (r *HorizontalDigdagWorkerAutoscalerReconciler) Reconcile(req ctrl.Request)
 // starts watching Deployment.
 func (r *HorizontalDigdagWorkerAutoscalerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&horizontalpodautoscalersautoscalingv1.HorizontalDigdagWorkerAutoscaler{}).
+		For(&hpav1.HorizontalDigdagWorkerAutoscaler{}).
 		Owns(&appsv1.Deployment{}).
 		Complete(r)
 }
