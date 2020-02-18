@@ -2,8 +2,9 @@
 
 ![Publish](https://github.com/TrsNium/digdag-worker-crd/workflows/Publish/badge.svg)
 
-`digdag-worker-crd` is made for `digdag` project.
-digdag is a workflow engine. This project aims to make digdag worker scalable on kubernetes.
+Digdag is a workflow engine.  
+`digdag-worker-crd` is made for Digdag project.  
+This project aims to make digdag worker scalable on kubernetes.
 
 ## Usage
 
@@ -40,7 +41,7 @@ spec:
         - digdag server --disable-scheduler --config /etc/config/digdag.properties  --max-task-threads 3
         command:
         - /bin/bash
-        image: asia.gcr.io/wear-hairstyle-stg/digdag:latest
+        image: yourImage
         imagePullPolicy: Always
         name: digdag-worker
         dnsPolicy: ClusterFirst
@@ -54,9 +55,10 @@ spec:
 ```
 
 ## Deteil
-`HorizontalDigdagWorkerAutoscaler` looks at the postgresql task queue used by the digdag worker and adjusts the digdag worker's replicas.
-If the task queue is empty, set replicas of digdag worker to 1.
-Increase the replicas of the digdag worker under the following conditions.
-`TotalQueudTask - digdagMaxTaskThreads * DigdagWorker Replicas > 0`
+`HorizontalDigdagWorkerAutoscaler` looks at the postgresql task queue used by the Digdag worker and adjusts the Digdag worker's replicas.  
 
+If the task queue is empty, set replicas of Digdag worker to 1.  
+Increase the replicas of the Digdag worker under the following conditions.  
+`TotalQueudTask - DigdagMaxTaskThreads * DigdagWorker Replicas > 0`  
 
+Also Digdag worker scale-in will not be done emptying the task queue.
