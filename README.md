@@ -48,10 +48,13 @@ spec:
         restartPolicy: Always
         schedulerName: default-scheduler
         securityContext: {}
-        volumes:
-        - configMap:
-            name: digdag-config
+        volumeMounts:
+        - mountPath: /etc/config
           name: digdag-config-volume
+      volumes:
+      - configMap:
+          name: digdag-config
+        name: digdag-config-volume
 ```
 
 ## Deteil
