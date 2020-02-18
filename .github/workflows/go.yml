@@ -19,15 +19,13 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
-    - name: Get The Tag Version
+    - name: Get the version
       id: get_version
-      run: echo ::set-output name=tag::${GITHUB_REF/refs\/tags\//}
+      run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
 
     - name: echo
-      env:
-        RELEASE_VERSION: ${{ steps.vars.outputs.tag }}
       run: |
-        echo $RELEASE_VERSION
+        echo ${{ steps.get_version.outputs.VERSION }}
 
     - name: Get dependencies
       run: |
@@ -54,12 +52,10 @@ jobs:
         make docker-build
 
     - name: Publish Docker Image To Github Package
-      env:
-        RELEASE_VERSION: ${{ steps.vars.outputs.tag }}
       run: |
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u peaceiris --password-stdin
-        docker tag controller docker.pkg.github.com/trsnium/digdag-worker-crd/digdag-worker-controller:${RELEASE_VERSION}
-        docker push docker.pkg.github.com/trsnium/digdag-worker-crd/digdag-worker-controller:${RELEASE_VERSION}
+        docker tag controller docker.pkg.github.com/trsnium/digdag-worker-crd/digdag-worker-controller:${{ steps.get_version.outputs.VERSION }}
+        docker push docker.pkg.github.com/trsnium/digdag-worker-crd/digdag-worker-controller:${{ steps.get_version.outputs.VERSION }}
 
     - name: Create Release
       id: create_release
