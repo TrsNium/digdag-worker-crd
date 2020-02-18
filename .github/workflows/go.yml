@@ -27,6 +27,15 @@ jobs:
             dep ensure
         fi
 
+    - name: FetchBinaryDeps
+      env:
+        version: 2.2.0
+        arch: amd64
+      run: |
+        curl -L -O  "https://github.com/kubernetes-sigs/kubebuilder/releases/download/${version}/kubebuilder_${version}_linux_${arch}.tar.gz"
+        tar -zxvf kubebuilder_${version}_linux_${arch}.tar.gz
+        mv kubebuilder_${version}_linux_${arch} kubebuilder && sudo mv kubebuilder /usr/local/
+
     - name: Build Controller
       run: make
 
