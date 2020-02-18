@@ -1,9 +1,11 @@
-name: Go
-on: [push]
-jobs:
+name: Publish
+on:
+  tags:
+  - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
-  build:
-    name: Build
+jobs:
+  publish:
+    name: Publish
     runs-on: ubuntu-latest
     steps:
 
@@ -24,5 +26,30 @@ jobs:
             dep ensure
         fi
 
-    - name: Build
-      run: go build -v .
+    - name: Build Controller
+      run: make
+
+    - name: Build Docker Image
+      run: |
+        make docker-build
+
+    - name: Publish Docker Image To Github Package
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u peaceiris --password-stdin
+        docker tag controller docker.pkg.github.com/trsnium/digdag-worker-crd/digdag-worker-controller:${{ github.ref }}
+        docker push docker.pkg.github.com/trsnium/digdag-worker-crd/digdag-worker-controller:${{ github.ref }}
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: |
+          Changes in this Release
+          - First Change
+          - Second Change
+        draft: true
+        prerelease: false
