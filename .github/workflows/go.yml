@@ -55,6 +55,6 @@ jobs:
 
     - name: Publish Docker Image to DockerHub
       run: |
-        echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login docker.pkg.github.com -u trsnium --password-stdin
+        echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u trsnium --password-stdin
         docker tag controller trsnium/digdag-worker-controller:${{ steps.get_version.outputs.VERSION }}
         docker push trsnium/digdag-worker-controller:${{ steps.get_version.outputs.VERSION }}
