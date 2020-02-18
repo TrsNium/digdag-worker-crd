@@ -43,11 +43,17 @@ jobs:
       run: |
         make docker-build
 
+    - name: Get The Tag Version
+      id: get_version
+      run: echo ::set-output name=tag::${GITHUB_REF/refs\/tags\//}
+
     - name: Publish Docker Image To Github Package
+      env:
+        RELEASE_VERSION: ${{ steps.vars.outputs.tag }}
       run: |
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u peaceiris --password-stdin
-        docker tag controller docker.pkg.github.com/trsnium/digdag-worker-crd/digdag-worker-controller:${{ github.ref }}
-        docker push docker.pkg.github.com/trsnium/digdag-worker-crd/digdag-worker-controller:${{ github.ref }}
+        docker tag controller docker.pkg.github.com/trsnium/digdag-worker-crd/digdag-worker-controller:${RELEASE_VERSION}
+        docker push docker.pkg.github.com/trsnium/digdag-worker-crd/digdag-worker-controller:${RELEASE_VERSION}
 
     - name: Create Release
       id: create_release
