@@ -43,7 +43,7 @@ func (r *HorizontalDigdagWorkerAutoscalerReconciler) Reconcile(req ctrl.Request)
 	ctx := context.Background()
 	log := r.Log.WithValues("HorizontalDigdagWorkerAutoscaler", req.NamespacedName)
 
-	// featch list of HorizontalDigdagWorkerAutoscaler
+	// fetch list of HorizontalDigdagWorkerAutoscaler
 	horizontalDigdagWorkerAutoscalers := &hpav1.HorizontalDigdagWorkerAutoscalerList{}
 	if err := r.Client.List(ctx, horizontalDigdagWorkerAutoscalers, &client.ListOptions{}); err != nil {
 		log.Error(err, "failed to get HorizontalDigdagWorkerAutoscaler resource")

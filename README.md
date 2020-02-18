@@ -57,7 +57,7 @@ spec:
         name: digdag-config-volume
 ```
 
-## Deteil
+## Detail
 `HorizontalDigdagWorkerAutoscaler` looks at the postgresql task queue used by the Digdag worker and adjusts the Digdag worker's replicas.  
 
 If the task queue is empty, set replicas of Digdag worker to 1.  
