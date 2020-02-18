@@ -52,18 +52,3 @@ jobs:
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u peaceiris --password-stdin
         docker tag controller docker.pkg.github.com/trsnium/digdag-worker-crd/digdag-worker-controller:${{ steps.get_version.outputs.VERSION }}
         docker push docker.pkg.github.com/trsnium/digdag-worker-crd/digdag-worker-controller:${{ steps.get_version.outputs.VERSION }}
-
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        body: |
-          Changes in this Release
-          - First Change
-          - Second Change
-        draft: true
-        prerelease: false
