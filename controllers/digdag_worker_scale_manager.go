@@ -15,22 +15,22 @@ type DigdagWorkerScaleManager struct {
 }
 
 func (r *DigdagWorkerScaleManager) IsManaged(horizontalDigdagWorkerAutoscaler hpav1.HorizontalDigdagWorkerAutoscaler) bool {
-	spec := horizontalDigdagWorkerAutoscaler.Spec
-	key := fmt.Sprintf("%s-%s", spec.ScaleTargetDeploymentNamespace, spec.ScaleTargetDeployment)
+	dployment := horizontalDigdagWorkerAutoscaler.Spec.Deployment
+	key := fmt.Sprintf("%s-%s", dployment.Namespace, dployment.Name)
 	_, isManaged := r.digdagWorkerScalers[key]
 	return isManaged
 }
 
 func (r *DigdagWorkerScaleManager) IsUpdated(horizontalDigdagWorkerAutoscaler hpav1.HorizontalDigdagWorkerAutoscaler) bool {
-	spec := horizontalDigdagWorkerAutoscaler.Spec
-	key := fmt.Sprintf("%s-%s", spec.ScaleTargetDeploymentNamespace, spec.ScaleTargetDeployment)
+	dployment := horizontalDigdagWorkerAutoscaler.Spec.Deployment
+	key := fmt.Sprintf("%s-%s", dployment.Namespace, dployment.Name)
 	digdagWorkerScaler, _ := r.digdagWorkerScalers[key]
 	return digdagWorkerScaler.Equal(horizontalDigdagWorkerAutoscaler)
 }
 
 func (r *DigdagWorkerScaleManager) Manage(horizontalDigdagWorkerAutoscaler hpav1.HorizontalDigdagWorkerAutoscaler) error {
-	spec := horizontalDigdagWorkerAutoscaler.Spec
-	key := fmt.Sprintf("%s-%s", spec.ScaleTargetDeploymentNamespace, spec.ScaleTargetDeployment)
+	dployment := horizontalDigdagWorkerAutoscaler.Spec.Deployment
+	key := fmt.Sprintf("%s-%s", dployment.Namespace, dployment.Name)
 	digdagWorkerScaler, err := NewDigdagWorkerScaler(r.client, r.log, horizontalDigdagWorkerAutoscaler)
 	if err != nil {
 		return err
@@ -41,8 +41,8 @@ func (r *DigdagWorkerScaleManager) Manage(horizontalDigdagWorkerAutoscaler hpav1
 }
 
 func (r *DigdagWorkerScaleManager) Update(horizontalDigdagWorkerAutoscaler hpav1.HorizontalDigdagWorkerAutoscaler) error {
-	spec := horizontalDigdagWorkerAutoscaler.Spec
-	key := fmt.Sprintf("%s-%s", spec.ScaleTargetDeploymentNamespace, spec.ScaleTargetDeployment)
+	dployment := horizontalDigdagWorkerAutoscaler.Spec.Deployment
+	key := fmt.Sprintf("%s-%s", dployment.Namespace, dployment.Name)
 	digdagWorkerScaler, _ := r.digdagWorkerScalers[key]
 	err := digdagWorkerScaler.Update(horizontalDigdagWorkerAutoscaler)
 	r.log.Info(fmt.Sprintf("%s is updated", key))
@@ -57,8 +57,8 @@ func (r *DigdagWorkerScaleManager) gc(digdagWorkerScalersKey string) {
 func (r *DigdagWorkerScaleManager) GCNotUsed(horizontalDigdagWorkerAutoscalers *hpav1.HorizontalDigdagWorkerAutoscalerList) {
 	keys := []string{}
 	for _, horizontalDigdagWorkerAutoscaler := range horizontalDigdagWorkerAutoscalers.Items {
-		spec := horizontalDigdagWorkerAutoscaler.Spec
-		key := fmt.Sprintf("%s-%s", spec.ScaleTargetDeploymentNamespace, spec.ScaleTargetDeployment)
+		dployment := horizontalDigdagWorkerAutoscaler.Spec.Deployment
+		key := fmt.Sprintf("%s-%s", dployment.Namespace, dployment.Name)
 		keys = append(keys, key)
 	}
 
