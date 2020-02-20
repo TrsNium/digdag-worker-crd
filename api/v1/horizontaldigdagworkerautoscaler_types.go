@@ -38,7 +38,7 @@ type Postgresql struct {
 // HorizontalDigdagWorkerAutoscalerSpec defines the desired state of HorizontalDigdagWorkerAutoscaler
 type HorizontalDigdagWorkerAutoscalerSpec struct {
 	Deployment `json:"deployment"`
-	Postgresql `json:"Postgresql"`
+	Postgresql `json:"postgresql"`
 }
 
 // HorizontalDigdagWorkerAutoscalerStatus defines the observed state of HorizontalDigdagWorkerAutoscaler
