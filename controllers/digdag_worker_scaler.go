@@ -8,6 +8,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/robfig/cron"
 	"math"
+	"reflect"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -17,54 +18,44 @@ import (
 )
 
 type DigdagWorkerScaler struct {
-	client                client.Client
-	logger                logr.Logger
-	namespace             string
-	postgresqlHost        string
-	postgresqlPort        int32
-	postgresqlDatabase    string
-	postgresqlUser        string
-	postgresqlPassword    string
-	scaleTargetDeployment string
-	scaleIntervalSec      int32
-	maxTaskThreads        int32
-	cron                  *cron.Cron
-	db                    *sql.DB
+	client           client.Client
+	logger           logr.Logger
+	deployment       hpav1.Deployment
+	postgresql       hpav1.Postgresql
+	scaleIntervalSec int32
+	cron             *cron.Cron
+	db               *sql.DB
 }
 
 func (r *DigdagWorkerScaler) Equal(horizontalDigdagWorkerAutoscaler hpav1.HorizontalDigdagWorkerAutoscaler) bool {
-	spec := horizontalDigdagWorkerAutoscaler.Spec
-	objectMeta := horizontalDigdagWorkerAutoscaler.ObjectMeta
-	return r.namespace != objectMeta.Namespace ||
-		r.postgresqlHost != spec.PostgresqlHost ||
-		r.postgresqlPort != spec.PostgresqlPort ||
-		r.postgresqlDatabase != spec.PostgresqlDatabase ||
-		r.postgresqlUser != spec.PostgresqlUser ||
-		r.postgresqlPassword != spec.PostgresqlPassword ||
-		r.scaleTargetDeployment != spec.ScaleTargetDeployment ||
-		r.scaleIntervalSec != 30 ||
-		r.maxTaskThreads != spec.DigdagWorkerMaxTaskThreads
+	deployment := horizontalDigdagWorkerAutoscaler.Spec.Deployment
+	postgresql := horizontalDigdagWorkerAutoscaler.Spec.Postgresql
+	return reflect.DeepEqual(&r.deployment, &deployment) ||
+		reflect.DeepEqual(&r.postgresql, &postgresql) ||
+		r.scaleIntervalSec != 15
 }
 
 func (r *DigdagWorkerScaler) Update(horizontalDigdagWorkerAutoscaler hpav1.HorizontalDigdagWorkerAutoscaler) error {
 	r.GC()
 
-	spec := horizontalDigdagWorkerAutoscaler.Spec
-	objectMeta := horizontalDigdagWorkerAutoscaler.ObjectMeta
-	db, err := createDB(spec.PostgresqlHost, spec.PostgresqlPort, spec.PostgresqlDatabase, spec.PostgresqlUser, spec.PostgresqlPassword)
+	deployment := horizontalDigdagWorkerAutoscaler.Spec.Deployment
+	postgresql := horizontalDigdagWorkerAutoscaler.Spec.Postgresql
+	db, err := createDB(
+		r.client,
+		r.logger,
+		postgresql.Host,
+		postgresql.Port,
+		postgresql.Database,
+		postgresql.User,
+		postgresql.Password,
+	)
 	if err != nil {
 		return err
 	}
 
-	r.namespace = objectMeta.Namespace
-	r.postgresqlHost = spec.PostgresqlHost
-	r.postgresqlPort = spec.PostgresqlPort
-	r.postgresqlDatabase = spec.PostgresqlDatabase
-	r.postgresqlUser = spec.PostgresqlUser
-	r.postgresqlPassword = spec.PostgresqlPassword
-	r.scaleTargetDeployment = spec.ScaleTargetDeployment
+	r.deployment = deployment
+	r.postgresql = postgresql
 	r.scaleIntervalSec = 15
-	r.maxTaskThreads = spec.DigdagWorkerMaxTaskThreads
 	r.db = db
 
 	cron := cron.New()
@@ -94,7 +85,7 @@ func (r *DigdagWorkerScaler) scaleDigdagWorker() {
 	ctx := context.Background()
 	// Get Deployment associated with HorizontalDigdagWorkerAutoscaler
 	deployment := appsv1.Deployment{}
-	err := r.client.Get(ctx, client.ObjectKey{Namespace: r.namespace, Name: r.scaleTargetDeployment}, &deployment)
+	err := r.client.Get(ctx, client.ObjectKey{Namespace: r.deployment.Namespace, Name: r.deployment.Name}, &deployment)
 	if errors.IsNotFound(err) {
 		r.logger.Info("Deployment associated with HorizontalDigdagWorkerAutoscaler was not found")
 		return
@@ -136,7 +127,7 @@ func (r *DigdagWorkerScaler) scaleDigdagWorker() {
 		currentReplicas := *deployment.Spec.Replicas
 
 		// Update the number of deployment pods according to the task queue
-		digdagWorkerMaxTaskThreads := r.maxTaskThreads
+		digdagWorkerMaxTaskThreads := r.deployment.MaxTaskThreads
 		digdagTotalTaskThreads := currentReplicas * digdagWorkerMaxTaskThreads
 
 		// NOTE
@@ -165,33 +156,73 @@ func (r *DigdagWorkerScaler) GC() {
 	r.cron.Stop()
 }
 
-func createDB(host string, port int32, database string, user string, password string) (*sql.DB, error) {
-	connStr := fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=disable", host, port, database, user, password)
+func createDB(
+	client client.Client,
+	logr logr.Logger,
+	hostRef hpav1.Ref,
+	portRef hpav1.Ref,
+	databaseRef hpav1.Ref,
+	userRef hpav1.Ref,
+	passwordRef hpav1.Ref,
+) (*sql.DB, error) {
+
+	host, err := hostRef.GetValue(client)
+	if err != nil {
+		logr.Error(err, "Could not read host value")
+		return nil, err
+	}
+
+	port, err := portRef.GetValue(client)
+	if err != nil {
+		logr.Error(err, "Could not read port value")
+		return nil, err
+	}
+
+	database, err := databaseRef.GetValue(client)
+	if err != nil {
+		logr.Error(err, "Could not read database value")
+		return nil, err
+	}
+
+	user, err := userRef.GetValue(client)
+	if err != nil {
+		logr.Error(err, "Could not read user value")
+		return nil, err
+	}
+
+	password, err := passwordRef.GetValue(client)
+	if err != nil {
+		logr.Error(err, "Could not read password value")
+		return nil, err
+	}
+
+	connStr := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable", host, port, database, user, password)
 	return sql.Open("postgres", connStr)
 }
 
 func NewDigdagWorkerScaler(client client.Client, logr logr.Logger, horizontalDigdagWorkerAutoscaler hpav1.HorizontalDigdagWorkerAutoscaler) (DigdagWorkerScaler, error) {
 	logr.Info("Create new DigdagWorkerScaler")
-	spec := horizontalDigdagWorkerAutoscaler.Spec
-	objectMeta := horizontalDigdagWorkerAutoscaler.ObjectMeta
-	db, err := createDB(spec.PostgresqlHost, spec.PostgresqlPort, spec.PostgresqlDatabase, spec.PostgresqlUser, spec.PostgresqlPassword)
+	postgresql := horizontalDigdagWorkerAutoscaler.Spec.Postgresql
+	db, err := createDB(
+		client,
+		logr,
+		postgresql.Host,
+		postgresql.Port,
+		postgresql.Database,
+		postgresql.User,
+		postgresql.Password,
+	)
 	if err != nil {
 		return DigdagWorkerScaler{}, err
 	}
 
 	scaler := DigdagWorkerScaler{
-		client:                client,
-		logger:                logr,
-		namespace:             objectMeta.Namespace,
-		postgresqlHost:        spec.PostgresqlHost,
-		postgresqlPort:        spec.PostgresqlPort,
-		postgresqlDatabase:    spec.PostgresqlDatabase,
-		postgresqlUser:        spec.PostgresqlUser,
-		postgresqlPassword:    spec.PostgresqlPassword,
-		scaleTargetDeployment: spec.ScaleTargetDeployment,
-		scaleIntervalSec:      15,
-		maxTaskThreads:        spec.DigdagWorkerMaxTaskThreads,
-		db:                    db,
+		client:           client,
+		logger:           logr,
+		deployment:       horizontalDigdagWorkerAutoscaler.Spec.Deployment,
+		postgresql:       horizontalDigdagWorkerAutoscaler.Spec.Postgresql,
+		scaleIntervalSec: 15,
+		db:               db,
 	}
 
 	cron := cron.New()

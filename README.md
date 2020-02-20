@@ -12,16 +12,26 @@ This project aims to make digdag worker scalable on kubernetes.
 apiVersion: horizontalpodautoscalers.autoscaling.digdag-worker-crd/v1
 kind: HorizontalDigdagWorkerAutoscaler
 metadata:
-  name: horizontaldigdagworkerautoscaler-sample
+  name: horizontaldigdagworkerautoscaler
 spec:
-  scaleTargetDeployment: digdag-worker
-  scaleTargetDeploymentNamespace: default
-  digdagMaxTaskThreads: 3
-  postgresqlHost: "example.com"
-  postgresqlPort: 5432
-  postgresqlDatabase: "digdag"
-  postgresqlUser: "digdag"
-  postgresqlPassword: "your password"
+  deployment:
+    name: digdag-worker
+    namespace: default
+    maxTaskThreads: 3
+  postgresql:
+    host:
+      value: <YOUR_POSTGRESQL_HOST>
+    port:
+      value: "5432"
+    database:
+      value: postgres
+    user:
+      value: postgres
+    password:
+      valueFromSecretKeyRef:
+        name: postgres
+        namespace: default
+        key: password
 ---
 apiVersion: apps/v1
 kind: Deployment

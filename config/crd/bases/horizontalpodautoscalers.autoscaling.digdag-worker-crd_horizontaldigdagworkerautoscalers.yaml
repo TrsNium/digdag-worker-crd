@@ -37,36 +37,123 @@ spec:
             have json tags for the fields to be serialized. HorizontalDigdagWorkerAutoscalerSpec
             defines the desired state of HorizontalDigdagWorkerAutoscaler'
           properties:
-            digdagMaxTaskThreads:
-              format: int32
-              minimum: 1
-              type: integer
-            postgresqlDatabase:
-              type: string
-            postgresqlHost:
-              type: string
-            postgresqlPassword:
-              type: string
-            postgresqlPort:
-              format: int32
-              type: integer
-            postgresqlUser:
-              type: string
-            scaleTargetDeployment:
-              description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-                Important: Run "make" to regenerate code after modifying this file'
-              type: string
-            scaleTargetDeploymentNamespace:
-              type: string
+            deployment:
+              properties:
+                maxTaskThreads:
+                  format: int32
+                  minimum: 1
+                  type: integer
+                name:
+                  type: string
+                namespace:
+                  type: string
+              required:
+              - maxTaskThreads
+              - name
+              - namespace
+              type: object
+            postgresql:
+              properties:
+                database:
+                  properties:
+                    value:
+                      type: string
+                    valueFromSecretKeyRef:
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - key
+                      - name
+                      - namespace
+                      type: object
+                  type: object
+                host:
+                  properties:
+                    value:
+                      type: string
+                    valueFromSecretKeyRef:
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - key
+                      - name
+                      - namespace
+                      type: object
+                  type: object
+                password:
+                  properties:
+                    value:
+                      type: string
+                    valueFromSecretKeyRef:
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - key
+                      - name
+                      - namespace
+                      type: object
+                  type: object
+                port:
+                  properties:
+                    value:
+                      type: string
+                    valueFromSecretKeyRef:
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - key
+                      - name
+                      - namespace
+                      type: object
+                  type: object
+                user:
+                  properties:
+                    value:
+                      type: string
+                    valueFromSecretKeyRef:
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - key
+                      - name
+                      - namespace
+                      type: object
+                  type: object
+              required:
+              - database
+              - host
+              - password
+              - port
+              - user
+              type: object
           required:
-          - digdagMaxTaskThreads
-          - postgresqlDatabase
-          - postgresqlHost
-          - postgresqlPassword
-          - postgresqlPort
-          - postgresqlUser
-          - scaleTargetDeployment
-          - scaleTargetDeploymentNamespace
+          - deployment
+          - postgresql
           type: object
         status:
           description: HorizontalDigdagWorkerAutoscalerStatus defines the observed

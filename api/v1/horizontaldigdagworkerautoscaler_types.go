@@ -22,17 +22,8 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 // HorizontalDigdagWorkerAutoscalerSpec defines the desired state of HorizontalDigdagWorkerAutoscaler
 type HorizontalDigdagWorkerAutoscalerSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	ScaleTargetDeployment          string `json:"scaleTargetDeployment"`
-	ScaleTargetDeploymentNamespace string `json:"scaleTargetDeploymentNamespace"`
-	// +kubebuilder:validation:Minimum=1
-	DigdagWorkerMaxTaskThreads int32  `json:"digdagMaxTaskThreads"`
-	PostgresqlHost             string `json:"postgresqlHost"`
-	PostgresqlPort             int32  `json:"postgresqlPort"`
-	PostgresqlDatabase         string `json:"postgresqlDatabase"`
-	PostgresqlUser             string `json:"postgresqlUser"`
-	PostgresqlPassword         string `json:"postgresqlPassword"`
+	Deployment `json:"deployment"`
+	Postgresql `json:"postgresql"`
 }
 
 // HorizontalDigdagWorkerAutoscalerStatus defines the observed state of HorizontalDigdagWorkerAutoscaler
