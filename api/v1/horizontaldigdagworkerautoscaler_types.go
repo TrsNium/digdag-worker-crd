@@ -19,21 +19,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type Deployment struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	// +kubebuilder:validation:Minimum=1
-	MaxTaskThreads int32 `json:"maxTaskThreads"`
-}
-
-type Postgresql struct {
-	Host     string `json:"host"`
-	Port     int32  `json:"port"`
-	Database string `json:"database"`
-	User     string `json:"user"`
-	Password string `json:"password"`
-}
-
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 // HorizontalDigdagWorkerAutoscalerSpec defines the desired state of HorizontalDigdagWorkerAutoscaler
 type HorizontalDigdagWorkerAutoscalerSpec struct {

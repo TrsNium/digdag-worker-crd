@@ -55,16 +55,95 @@ spec:
             postgresql:
               properties:
                 database:
-                  type: string
+                  properties:
+                    value:
+                      type: string
+                    valueFromSecretKeyRef:
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - key
+                      - name
+                      - namespace
+                      type: object
+                  type: object
                 host:
-                  type: string
+                  properties:
+                    value:
+                      type: string
+                    valueFromSecretKeyRef:
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - key
+                      - name
+                      - namespace
+                      type: object
+                  type: object
                 password:
-                  type: string
+                  properties:
+                    value:
+                      type: string
+                    valueFromSecretKeyRef:
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - key
+                      - name
+                      - namespace
+                      type: object
+                  type: object
                 port:
-                  format: int32
-                  type: integer
+                  properties:
+                    value:
+                      type: string
+                    valueFromSecretKeyRef:
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - key
+                      - name
+                      - namespace
+                      type: object
+                  type: object
                 user:
-                  type: string
+                  properties:
+                    value:
+                      type: string
+                    valueFromSecretKeyRef:
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - key
+                      - name
+                      - namespace
+                      type: object
+                  type: object
               required:
               - database
               - host

@@ -8,6 +8,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/robfig/cron"
 	"math"
+	"reflect"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -29,8 +30,8 @@ type DigdagWorkerScaler struct {
 func (r *DigdagWorkerScaler) Equal(horizontalDigdagWorkerAutoscaler hpav1.HorizontalDigdagWorkerAutoscaler) bool {
 	deployment := horizontalDigdagWorkerAutoscaler.Spec.Deployment
 	postgresql := horizontalDigdagWorkerAutoscaler.Spec.Postgresql
-	return r.deployment != deployment ||
-		r.postgresql != postgresql ||
+	return reflect.DeepEqual(&r.deployment, &deployment) ||
+		reflect.DeepEqual(&r.postgresql, &postgresql) ||
 		r.scaleIntervalSec != 15
 }
 
@@ -39,7 +40,15 @@ func (r *DigdagWorkerScaler) Update(horizontalDigdagWorkerAutoscaler hpav1.Horiz
 
 	deployment := horizontalDigdagWorkerAutoscaler.Spec.Deployment
 	postgresql := horizontalDigdagWorkerAutoscaler.Spec.Postgresql
-	db, err := createDB(postgresql.Host, postgresql.Port, postgresql.Database, postgresql.User, postgresql.Password)
+	db, err := createDB(
+		r.client,
+		r.logger,
+		postgresql.Host,
+		postgresql.Port,
+		postgresql.Database,
+		postgresql.User,
+		postgresql.Password,
+	)
 	if err != nil {
 		return err
 	}
@@ -147,15 +156,62 @@ func (r *DigdagWorkerScaler) GC() {
 	r.cron.Stop()
 }
 
-func createDB(host string, port int32, database string, user string, password string) (*sql.DB, error) {
-	connStr := fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=disable", host, port, database, user, password)
+func createDB(
+	client client.Client,
+	logr logr.Logger,
+	hostRef hpav1.Ref,
+	portRef hpav1.Ref,
+	databaseRef hpav1.Ref,
+	userRef hpav1.Ref,
+	passwordRef hpav1.Ref,
+) (*sql.DB, error) {
+
+	host, err := hostRef.GetValue(client)
+	if err != nil {
+		logr.Error(err, "Could not read host value")
+		return nil, err
+	}
+
+	port, err := portRef.GetValue(client)
+	if err != nil {
+		logr.Error(err, "Could not read port value")
+		return nil, err
+	}
+
+	database, err := databaseRef.GetValue(client)
+	if err != nil {
+		logr.Error(err, "Could not read database value")
+		return nil, err
+	}
+
+	user, err := userRef.GetValue(client)
+	if err != nil {
+		logr.Error(err, "Could not read user value")
+		return nil, err
+	}
+
+	password, err := passwordRef.GetValue(client)
+	if err != nil {
+		logr.Error(err, "Could not read password value")
+		return nil, err
+	}
+
+	connStr := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable", host, port, database, user, password)
 	return sql.Open("postgres", connStr)
 }
 
 func NewDigdagWorkerScaler(client client.Client, logr logr.Logger, horizontalDigdagWorkerAutoscaler hpav1.HorizontalDigdagWorkerAutoscaler) (DigdagWorkerScaler, error) {
 	logr.Info("Create new DigdagWorkerScaler")
-	postgresql := horizontalDigdagWorkerAutoscaler.Spec
-	db, err := createDB(postgresql.Host, postgresql.Port, postgresql.Database, postgresql.User, postgresql.Password)
+	postgresql := horizontalDigdagWorkerAutoscaler.Spec.Postgresql
+	db, err := createDB(
+		client,
+		logr,
+		postgresql.Host,
+		postgresql.Port,
+		postgresql.Database,
+		postgresql.User,
+		postgresql.Password,
+	)
 	if err != nil {
 		return DigdagWorkerScaler{}, err
 	}

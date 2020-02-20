@@ -39,6 +39,7 @@ type HorizontalDigdagWorkerAutoscalerReconciler struct {
 // +kubebuilder:rbac:groups=horizontalpodautoscalers.autoscaling.digdag-worker-crd,resources=horizontaldigdagworkerautoscalers/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups="",resources=configmap,verbs=get;list;watch;create;update;delete
+// +kubebuilder:rbac:groups="",resources=services;serviceaccounts;secrets,verbs=get;list;watch;create;update;delete;patch
 func (r *HorizontalDigdagWorkerAutoscalerReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("HorizontalDigdagWorkerAutoscaler", req.NamespacedName)
