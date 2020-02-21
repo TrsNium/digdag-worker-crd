@@ -144,9 +144,9 @@ func (r *DigdagWorkerScaler) scaleDigdagWorker() {
 				r.logger.Error(err, "failed to Deployment update replica count")
 				return
 			}
-
 			return
 		}
+		r.logger.Info(fmt.Sprintf("Keep replicas %d", currentReplicas))
 	}
 }
 
