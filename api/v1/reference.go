@@ -56,4 +56,6 @@ type Deployment struct {
 	Namespace string `json:"namespace"`
 	// +kubebuilder:validation:Minimum=1
 	MaxTaskThreads int32 `json:"maxTaskThreads"`
+	// +kubebuilder:validation:Minimum=0
+	MinReplicas *int32 `json:"minReplicas,omitempty"`
 }
