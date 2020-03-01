@@ -110,7 +110,7 @@ func (r *DigdagWorkerScaler) scaleDigdagWorker() {
 
 		var minReplicas *int32 = r.deployment.MinReplicas
 		if minReplicas == nil {
-			defaultMinReplicas := int32(1)
+			defaultMinReplicas := int32(0)
 			minReplicas = &defaultMinReplicas
 		}
 
