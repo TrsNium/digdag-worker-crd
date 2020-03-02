@@ -108,8 +108,13 @@ func (r *DigdagWorkerScaler) scaleDigdagWorker() {
 		// Set replicas to 1 because there are no tasks to execute
 		r.logger.Info("Digdag is idling")
 
-		expectedReplicas := int32(1)
-		deployment.Spec.Replicas = &expectedReplicas
+		var minReplicas *int32 = r.deployment.MinReplicas
+		if minReplicas == nil {
+			defaultMinReplicas := int32(0)
+			minReplicas = &defaultMinReplicas
+		}
+
+		deployment.Spec.Replicas = minReplicas
 		if err := r.client.Update(ctx, &deployment); err != nil {
 			r.logger.Error(err, "failed to Deployment update replica count")
 			return

@@ -43,6 +43,10 @@ spec:
                   format: int32
                   minimum: 1
                   type: integer
+                minReplicas:
+                  format: int32
+                  minimum: 0
+                  type: integer
                 name:
                   type: string
                 namespace:
