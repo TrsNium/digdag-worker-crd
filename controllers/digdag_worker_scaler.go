@@ -130,15 +130,20 @@ func (r *DigdagWorkerScaler) scaleDigdagWorker() {
 
 		// Obtain replica of Deployment linked to HorizontalDigdagWorkerAutoscaler
 		currentReplicas := *deployment.Spec.Replicas
-
-		// Update the number of deployment pods according to the task queue
 		digdagWorkerMaxTaskThreads := r.deployment.MaxTaskThreads
-		digdagTotalTaskThreads := currentReplicas * digdagWorkerMaxTaskThreads
+		surplusTaskNum := int32(0)
+		if currentReplicas == 0 {
+			surplusTaskNum = int32(1)
+		} else {
+			// Update the number of deployment pods according to the task queue
+			digdagTotalTaskThreads := currentReplicas * digdagWorkerMaxTaskThreads
 
-		// NOTE
-		// Tasks that are not running on any node will be in the running state,
-		// So subtracting digdagTotalTaskThreads from all running tasks will give you the number of surplus tasks
-		surplusTaskNum := runningTaskNum - digdagTotalTaskThreads
+			// NOTE
+			// Tasks that are not running on any node will be in the running state,
+			// So subtracting digdagTotalTaskThreads from all running tasks will give you the number of surplus tasks
+			surplusTaskNum = runningTaskNum - digdagTotalTaskThreads
+		}
+
 		if surplusTaskNum > 0 {
 			additionalReplicas := int32(math.Ceil(float64(surplusTaskNum) / float64(digdagWorkerMaxTaskThreads)))
 			newReplicas := currentReplicas + additionalReplicas
